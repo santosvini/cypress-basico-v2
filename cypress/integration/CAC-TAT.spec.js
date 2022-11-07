@@ -1,6 +1,7 @@
 /// <reference types="Cypress" />
 
 describe('Central de Atendimento ao Cliente TAT', function() {
+  const THREE_SECONDS_IN_MS = 3000;
   beforeEach(function() {
     cy.visit('./src/index.html');
   });
@@ -11,28 +12,46 @@ describe('Central de Atendimento ao Cliente TAT', function() {
 
   it('Preencher os campos obrigatórios e envia o formulário', function() {
     const longText = 'Teste teste teste teste teste teste teste teste teste teste teste teste teste teste teste teste teste teste teste teste teste teste teste teste teste teste teste teste test  e teste teste teste teste teste teste teste test'
+
+    cy.clock()
+
     cy.get('input[id="firstName"]').type('Vinicius')
     cy.get('input[id="lastName"]').type('Santos')
     cy.get('input[id="email"]').type('vini_santos7@live.com')
     cy.get('textarea[id="open-text-area"]').type(longText, {delay: 0})
     cy.contains('button', 'Enviar').click()
+
     cy.get('.success').should('be.visible')
+
+    cy.tick(THREE_SECONDS_IN_MS)
+
+    cy.get('.success').should('not.be.visible')
   })
 
   it('Exibe mensagem de erro ao submeter o formulário com um email com formatação inválida', function() {
+    cy.clock()
+
     cy.get('input[id="firstName"]').type('Vinicius')
     cy.get('input[id="lastName"]').type('Santos')
     cy.get('input[id="email"]').type('vini_santos7@live,com')
     cy.get('textarea[id="open-text-area"]').type('Gostaria de conhecer Cypress', {delay: 0})
     cy.contains('button', 'Enviar').click()
+
     cy.get('.error').should('be.visible')
+
+    cy.tick(THREE_SECONDS_IN_MS)
+
+    cy.get('.error').should('not.be.visible')
   })
 
-  it('Campo telefone vazio com valor não-númerico', function() {
-    cy.get('input[id="phone"]').type('abcde').should('have.value', '')
+  Cypress._.times(5, function() {
+    it('Campo telefone vazio com valor não-númerico', function() {
+      cy.get('input[id="phone"]').type('abcde').should('have.value', '')
+    })
   })
 
   it('Exibe mensagem de erro quando o telefone se torna obrigatório mas não é preenchido antes do envio do formulário', function() {
+    cy.clock()
     cy.get('input[id="firstName"]').type('Vinicius')
     cy.get('input[id="lastName"]').type('Santos')
     cy.get('input[id="email"]').type('vini_santos7@live.com')
@@ -40,6 +59,10 @@ describe('Central de Atendimento ao Cliente TAT', function() {
     cy.get('textarea[id="open-text-area"]').type('Gostaria de conhecer Cypress', {delay: 0})
     cy.contains('button', 'Enviar').click()
     cy.get('.error').should('be.visible')
+
+    cy.tick(THREE_SECONDS_IN_MS)
+
+    cy.get('.error').should('not.be.visible')
   })
 
   it('Preenche e limpa os campos nome, sobrenome, email e telefone', function() {
@@ -50,13 +73,23 @@ describe('Central de Atendimento ao Cliente TAT', function() {
   })
 
   it('Exibe mensagem de erro ao submeter o formulário sem preencher os campos obrigatórios', function() {
+    cy.clock()
     cy.contains('button', 'Enviar').click()
     cy.get('.error').should('be.visible')
+
+    cy.tick(THREE_SECONDS_IN_MS)
+
+    cy.get('.error').should('not.be.visible')
   })
 
   it('Envia o formulário com sucesso usando um comando customizado', function() {
+    cy.clock()
     cy.fillMandatoryFieldsAndSubmit()
     cy.get('.success').should('be.visible')
+
+    cy.tick(THREE_SECONDS_IN_MS)
+
+    cy.get('.success').should('not.be.visible')
   })
 
   it('Seleciona um produto (YouTube) por seu texto', function() {
@@ -87,6 +120,7 @@ describe('Central de Atendimento ao Cliente TAT', function() {
   })
 
   it('Exibe mensagem de erro quando o telefone se torna obrigatório mas não é preenchido antes do envio do formulário', function() {
+    cy.clock()
     cy.get('input[id="firstName"]').type('Vinicius').should('be.visible')
     cy.get('input[id="lastName"]').type('Santos').should('be.visible')
     cy.get('input[id="email"]').type('vini_santos7@live.com').should('be.visible')
@@ -94,6 +128,10 @@ describe('Central de Atendimento ao Cliente TAT', function() {
     cy.get('textarea[id="open-text-area"]').type('Gostaria de conhecer Cypress', {delay: 0}).should('be.visible')
     cy.contains('button', 'Enviar').click().should('be.visible')
     cy.get('.error').should('be.visible')
+
+    cy.tick(THREE_SECONDS_IN_MS)
+
+    cy.get('.error').should('not.be.visible')
   })
 
   it('Seleciona um arquivo da pasta fixtures', function() {
@@ -131,5 +169,52 @@ describe('Central de Atendimento ao Cliente TAT', function() {
   it('Acessa a página da política de privacidade removendo o target e então clicando no link', function () {
     cy.get('a[href="privacy.html"]').invoke('removeAttr', 'target').click()
     cy.contains('Talking About Test').should('be.visible')
+  })
+
+  it('exibe e esconde as mensagens de sucesso e erro usando o .invoke', function() {
+    cy.get('.success')
+      .should('not.be.visible')
+      .invoke('show')
+      .should('be.visible')
+      .and('contain', 'Mensagem enviada com sucesso.')
+      .invoke('hide')
+      .should('not.be.visible')
+    cy.get('.error')
+      .should('not.be.visible')
+      .invoke('show')
+      .should('be.visible')
+      .and('contain', 'Valide os campos obrigatórios!')
+      .invoke('hide')
+      .should('not.be.visible')
+  })
+
+  it('Preenche a área de texto usando o comando invoke', function() {
+    const longText = Cypress._.repeat('0123456789', 20)
+
+    cy.get('#open-text-area').invoke('val', longText).should('have.value', longText)
+  })
+
+  it('Faz uma requisição HTTP', function() {
+    cy.request({
+      method: 'GET',
+      url: 'https://cac-tat.s3.eu-central-1.amazonaws.com/index.html'
+    }).then((response) => {
+        expect(response.status).to.equal(200)
+        expect(response.statusText).to.equal('OK')
+        expect(response.body).to.include('CAC TAT')
+    })
+  })
+
+  it.only('Encontre o gato escondido', function () {
+    cy.clock()
+    cy.get('span#cat')
+      .should('not.be.visible')
+      .invoke('show')
+      .should('be.visible')
+      .contains('🐈')
+    cy.get('#title')
+      .invoke('text', 'CAT TAT')
+    cy.get('#subtitle')
+      .invoke('text', 'Eu ❤️ gatos!')
   })
 })
